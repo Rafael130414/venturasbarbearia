@@ -31,6 +31,9 @@ export default function Dashboard() {
     year: new Date().getFullYear(),
   });
 
+  const [showRevenueModal, setShowRevenueModal] = useState(false);
+  const [revenueHistory, setRevenueHistory] = useState<any[]>([]);
+
   const [showQuickPayment, setShowQuickPayment] = useState(false);
   const [quickPaymentData, setQuickPaymentData] = useState({
     amount: '',
@@ -82,7 +85,10 @@ export default function Dashboard() {
       .gte('expense_date', start)
       .lte('expense_date', end) as any);
 
-    const totalRevenue = payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const totalPayments = payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+    const totalAppointmentsRevenue = apps?.reduce((sum: number, app: any) => sum + (Number(app.services?.price) || 0), 0) || 0;
+
+    const totalRevenue = totalPayments + totalAppointmentsRevenue;
     const totalExpenses = expenses?.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0) || 0;
 
     setStats({
@@ -91,6 +97,14 @@ export default function Dashboard() {
       profit: totalRevenue - totalExpenses,
       totalAppointments: apps?.length || 0,
     });
+
+    // Consolidar Histórico
+    const history = [
+      ...(payments || []).map((p: any) => ({ ...p, type: 'payment' })),
+      ...(apps || []).map((a: any) => ({ ...a, type: 'appointment', amount: a.services?.price }))
+    ].sort((a, b) => new Date(b.created_at || b.appointment_date).getTime() - new Date(a.created_at || a.appointment_date).getTime());
+
+    setRevenueHistory(history);
 
     const servicesMap = new Map();
     apps?.forEach((app: any) => {
@@ -166,12 +180,16 @@ export default function Dashboard() {
       {/* Grid de Métricas de Precisão */}
       <div className="grid gap-6 sm:gap-10 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'Entradas Reais', value: stats.totalRevenue, icon: TrendingUp, color: 'text-emerald-500' },
+          { label: 'Entradas Reais', value: stats.totalRevenue, icon: TrendingUp, color: 'text-emerald-500', onClick: () => setShowRevenueModal(true) },
           { label: 'Custos Fixos/Var', value: stats.totalExpenses, icon: TrendingDown, color: 'text-red-500' },
           { label: 'Lucro Líquido', value: stats.profit, icon: DollarSign, color: 'text-amber-500' },
           { label: 'Tickets Gerados', value: stats.totalAppointments, icon: Users, color: 'text-slate-900' },
         ].map((item, idx) => (
-          <div key={idx} className="monolith-card p-6 sm:p-10 group relative overflow-hidden">
+          <div
+            key={idx}
+            onClick={item.onClick}
+            className={`monolith-card p-6 sm:p-10 group relative overflow-hidden ${item.onClick ? 'cursor-pointer hover:shadow-lg transition-all active:scale-95' : ''}`}
+          >
             <div className="flex flex-col relative z-10">
               <span className="premium-label !mb-4 sm:!mb-6">{item.label}</span>
               <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter mb-2">
@@ -227,6 +245,47 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal Histórico de Receitas */}
+      {showRevenueModal && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
+          <div className="monolith-card !bg-white w-full max-w-4xl p-8 sm:p-12 max-h-[90vh] overflow-y-auto animate-reveal relative flex flex-col">
+            <div className="flex items-center justify-between mb-8 sticky top-0 bg-white z-20 pb-4 border-b-2 border-slate-50">
+              <span className="premium-label !mb-0 text-emerald-500">Histórico de Entradas</span>
+              <button onClick={() => setShowRevenueModal(false)} className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-black hover:text-white transition-all font-black">X</button>
+            </div>
+
+            <div className="space-y-4">
+              {revenueHistory.length > 0 ? revenueHistory.map((item: any, i: number) => (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-50 border-l-4 border-emerald-500 text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mb-2 sm:mb-0">
+                    <span className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">
+                      {new Date(item.created_at || item.appointment_date).toLocaleDateString('pt-BR')}
+                    </span>
+                    <span className="font-black text-slate-900 uppercase">
+                      {item.description || (item.services ? `Agendamento: ${item.services.name}` : 'Venda Avulsa')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 justify-between sm:justify-end">
+                    <span className="font-bold text-slate-500 text-[10px] uppercase tracking-widest bg-emerald-100/50 px-2 py-1 text-emerald-700">
+                      {item.payment_method || 'PIX/DINHEIRO'}
+                    </span>
+                    <span className="font-black text-emerald-600">
+                      R$ {Number(item.amount || item.services?.price).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-20 text-slate-300 font-black uppercase tracking-widest">Nenhuma entrada encontrada no período.</div>
+              )}
+            </div>
+
+            <div className="text-center mt-8 pt-6 border-t font-black text-slate-300 uppercase text-[10px] tracking-widest">
+              Mostrando todas as entradas de {Object.values(getDateRange()).map(d => new Date(d).toLocaleDateString('pt-BR')).join(' até ')}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Monolito para Venda Avulsa */}
       {showQuickPayment && (
