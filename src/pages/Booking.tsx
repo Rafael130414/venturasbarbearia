@@ -207,11 +207,19 @@ export default function Booking() {
                                     onClick={() => { setSelection({ ...selection, barberId: b.id }); setStep(3); }}
                                     className={`monolith-card !p-8 flex flex-col items-center text-center gap-4 ${selection.barberId === b.id ? 'bg-amber-500 border-black' : ''}`}
                                 >
-                                    <div className="w-20 h-20 bg-slate-900 text-white flex items-center justify-center rotate-3 shadow-[4px_4px_0px_#f59e0b] mb-2">
-                                        <User size={32} className="-rotate-3" />
+                                    <div className="w-20 h-20 bg-slate-900 text-white flex items-center justify-center rotate-3 shadow-[4px_4px_0px_#f59e0b] mb-2 overflow-hidden relative">
+                                        {b.photo_url ? (
+                                            <img
+                                                src={b.photo_url}
+                                                alt={b.name}
+                                                className="w-full h-full object-cover -rotate-3"
+                                            />
+                                        ) : (
+                                            <User size={32} className="-rotate-3" />
+                                        )}
                                     </div>
                                     <h3 className="text-xl font-black uppercase tracking-tight">{b.name}</h3>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Especialista</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Profissional</span>
                                 </button>
                             ))}
                         </div>
