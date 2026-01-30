@@ -48,16 +48,26 @@ export default function Dashboard() {
   const getDateRange = () => {
     const { period, month, year } = filter;
     const today = new Date();
+
+    const formatLocal = (date: Date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
     if (period === 'day') {
-      const date = today.toISOString().split('T')[0];
+      const date = formatLocal(today);
       return { start: date, end: date };
     } else if (period === 'week') {
       const start = new Date(today);
       start.setDate(today.getDate() - 7);
-      return { start: start.toISOString().split('T')[0], end: today.toISOString().split('T')[0] };
+      return { start: formatLocal(start), end: formatLocal(today) };
     } else {
       const start = `${year}-${month.toString().padStart(2, '0')}-01`;
-      const end = new Date(year, month, 0).toISOString().split('T')[0];
+      // Criar data baseada nos componentes locais para evitar shifts de timezone
+      const lastDayDate = new Date(year, month, 0);
+      const end = formatLocal(lastDayDate);
       return { start, end };
     }
   };
@@ -260,7 +270,7 @@ export default function Dashboard() {
                 <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-slate-50 border-l-4 border-emerald-500 text-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mb-2 sm:mb-0">
                     <span className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">
-                      {new Date(item.created_at || item.appointment_date).toLocaleDateString('pt-BR')}
+                      {new Date(item.created_at || item.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <span className="font-black text-slate-900 uppercase">
                       {item.description || (item.services ? `Agendamento: ${item.services.name}` : 'Venda Avulsa')}
@@ -281,7 +291,7 @@ export default function Dashboard() {
             </div>
 
             <div className="text-center mt-8 pt-6 border-t font-black text-slate-300 uppercase text-[10px] tracking-widest">
-              Mostrando todas as entradas de {Object.values(getDateRange()).map(d => new Date(d).toLocaleDateString('pt-BR')).join(' até ')}
+              Mostrando todas as entradas de {Object.values(getDateRange()).map(d => d.split('-').reverse().join('/')).join(' até ')}
             </div>
           </div>
         </div>

@@ -96,21 +96,41 @@ export default function Appointments() {
       if (time < currentTime) return true;
     }
 
+    // Recuperar duração do serviço selecionado
+    const service = services.find(s => s.id === formData.service_id);
+    const duration = service?.duration_minutes || 30;
+
+    // Converter horários para minutos para facilitar comparação
+    const [h, m] = time.split(':').map(Number);
+    const slotStart = h * 60 + m;
+    const slotEnd = slotStart + duration;
+
+    // Função auxiliar de colisão de horário
+    const isOverlap = (startA: number, endA: number, startB: number, endB: number) => {
+      return startA < endB && endA > startB;
+    };
+
     // 2. Bloquear Horário de Almoço do Barbeiro
     const barber = barbers.find(b => b.id === formData.barber_id);
     if (barber && barber.lunch_start && barber.lunch_end) {
-      const lStart = barber.lunch_start.slice(0, 5);
-      const lEnd = barber.lunch_end.slice(0, 5);
-      if (time >= lStart && time < lEnd) return true;
+      const [lh1, lm1] = barber.lunch_start.slice(0, 5).split(':').map(Number);
+      const [lh2, lm2] = barber.lunch_end.slice(0, 5).split(':').map(Number);
+      const lunchStart = lh1 * 60 + lm1;
+      const lunchEnd = lh2 * 60 + lm2;
+
+      if (isOverlap(slotStart, slotEnd, lunchStart, lunchEnd)) return true;
     }
 
     // 3. Bloquear se o barbeiro já estiver ocupado
     if (!formData.barber_id) return false;
     return appointments.some(app => {
       if (app.barber_id !== formData.barber_id || app.status === 'cancelled') return false;
-      const appStart = app.start_time.slice(0, 5);
-      const appEnd = app.end_time.slice(0, 5);
-      return time >= appStart && time < appEnd;
+      const [sh, sm] = app.start_time.slice(0, 5).split(':').map(Number);
+      const [eh, em] = app.end_time.slice(0, 5).split(':').map(Number);
+      const appStart = sh * 60 + sm;
+      const appEnd = eh * 60 + em;
+
+      return isOverlap(slotStart, slotEnd, appStart, appEnd);
     });
   };
 
