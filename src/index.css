@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --obsidian: #020617;
+  --bone: #f8fafc;
+  --amber-chrome: #f59e0b;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bone);
+  color: var(--obsidian);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.02em;
+}
+
+@layer components {
+
+  /* O Monolito: Quinas retas, sombra dura, impacto imediato */
+  .premium-card,
+  .monolith-card {
+    @apply bg-white border-2 border-slate-900 rounded-none shadow-[12px_12px_0px_#020617] transition-all duration-300;
+  }
+
+  .premium-card:hover,
+  .monolith-card:hover {
+    @apply -translate-x-2 -translate-y-2 shadow-[16px_16px_0px_#f59e0b];
+  }
+
+  /* Botão: Contraste orgânico (Redondo) com a estrutura (Reta) */
+  .premium-btn-primary,
+  .monolith-btn {
+    @apply bg-slate-900 text-white font-black py-4 px-10 rounded-full transition-all active:scale-95 shadow-xl hover:bg-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 disabled:opacity-30;
+  }
+
+  .premium-input,
+  .monolith-input {
+    @apply w-full bg-white border-2 border-slate-900 text-slate-900 rounded-none px-6 py-4 outline-none focus:bg-slate-50 transition-all placeholder:text-slate-300 font-bold uppercase text-xs tracking-widest;
+  }
+}
+
+@layer utilities {
+  .text-huge {
+    @apply text-[180px] font-black leading-[0.7] tracking-tighter opacity-[0.03] pointer-events-none select-none absolute -z-10;
+  }
+
+  .label-premium,
+  .premium-label {
+    @apply text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 block;
+  }
+
+  .animate-reveal {
+    animation: reveal 1s cubic-bezier(0.19, 1, 0.22, 1) both;
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(40px) skewY(3deg);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) skewY(0deg);
+    }
+  }
+}
