@@ -38,12 +38,21 @@ export default function Dashboard() {
   const [quickPaymentData, setQuickPaymentData] = useState({
     amount: '',
     payment_method: 'cash',
-    notes: ''
+    notes: '',
+    serviceId: ''
   });
+
+  const [servicesList, setServicesList] = useState<any[]>([]);
 
   useEffect(() => {
     loadStats();
+    loadServices();
   }, [filter]);
+
+  const loadServices = async () => {
+    const { data } = await supabase.from('services').select('*').eq('is_active', true);
+    setServicesList(data || []);
+  };
 
   const getDateRange = () => {
     const { period, month, year } = filter;
@@ -145,16 +154,21 @@ export default function Dashboard() {
 
   const handleQuickPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    const serviceName = servicesList.find(s => s.id === quickPaymentData.serviceId)?.name;
+    const finalNotes = serviceName
+      ? `${serviceName} - ${quickPaymentData.notes}`
+      : quickPaymentData.notes;
+
     const { error } = await supabase.from('payments').insert([{
       amount: parseFloat(quickPaymentData.amount),
       payment_method: quickPaymentData.payment_method,
-      notes: quickPaymentData.notes
+      notes: finalNotes
     }] as any);
 
     if (error) alert('Erro: ' + error.message);
     else {
       setShowQuickPayment(false);
-      setQuickPaymentData({ amount: '', payment_method: 'cash', notes: '' });
+      setQuickPaymentData({ amount: '', payment_method: 'cash', notes: '', serviceId: '' });
       loadStats();
     }
   };
@@ -273,7 +287,7 @@ export default function Dashboard() {
                       {new Date(item.created_at || item.appointment_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <span className="font-black text-slate-900 uppercase">
-                      {item.description || (item.services ? `Agendamento: ${item.services.name}` : 'Venda Avulsa')}
+                      {item.description || item.notes || (item.services ? `Agendamento: ${item.services.name}` : 'Venda Avulsa')}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 justify-between sm:justify-end">
@@ -308,9 +322,31 @@ export default function Dashboard() {
 
             <form onSubmit={handleQuickPayment} className="space-y-10">
               <div className="space-y-4">
+                <span className="premium-label">Opção: Referência de Serviço</span>
+                <select
+                  value={quickPaymentData.serviceId}
+                  onChange={(e) => {
+                    const sId = e.target.value;
+                    const s = servicesList.find(x => x.id === sId);
+                    setQuickPaymentData({
+                      ...quickPaymentData,
+                      serviceId: sId,
+                      amount: s ? s.price.toString() : quickPaymentData.amount
+                    });
+                  }}
+                  className="monolith-input"
+                >
+                  <option value="">-- Apenas Venda (Opcional) --</option>
+                  {servicesList.map(s => (
+                    <option key={s.id} value={s.id}>{s.name.toUpperCase()} - R$ {s.price.toFixed(2)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-4">
                 <span className="premium-label">Valor do Recebimento</span>
                 <input
-                  type="number" step="0.01" autoFocus required
+                  type="number" step="0.01" required
                   placeholder="0,00"
                   value={quickPaymentData.amount}
                   onChange={(e) => setQuickPaymentData({ ...quickPaymentData, amount: e.target.value })}
